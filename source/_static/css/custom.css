@@ -1,0 +1,15 @@
+html[data-theme="light"] {
+    --pst-color-background: #eff1f5;
+    --pst-color-primary: #8839ef;
+    h1{
+        color: #8839ef;
+    }
+}
+
+html[data-theme="dark"] {
+    --pst-color-background: #1e1e2e;
+    --pst-color-primary: #cba6f7;
+    h1{
+        color: #cba6f7;
+    }
+}

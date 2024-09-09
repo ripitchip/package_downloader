@@ -1,0 +1,10 @@
+.nox
+__pycache__
+.env
+requirements
+noxfile.py
+.ruff_cache
+poetry.toml
+poetry.lock
+.pre-commit-config.yaml
+build
