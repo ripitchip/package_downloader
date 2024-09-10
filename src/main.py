@@ -1,37 +1,82 @@
+from __future__ import annotations
+from typing import List
+from pathlib import Path
+import subprocess
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-import os
-import subprocess
 
 app = FastAPI()
 
 # Directory where RPMs and tar.gz files are stored
-RPM_DIR = "/tmp/rpm_dir"
+RPM_DIR = Path("/tmp/rpm_dir")
 
 
-@app.get("/download/{pkg_name}")
-def create_package_tar(pkg_name: str) -> FileResponse:
-    package_dir = os.path.join(RPM_DIR, pkg_name)
-    os.makedirs(package_dir, exist_ok=True)
-    subprocess.run(
-        [
-            "yumdownloader",
-            "--assumeyes",
-            "--destdir=" + package_dir,
-            "--resolve",
+@app.post("/rpm/")
+def create_package_yum(pkg_name: str | list[str]) -> FileResponse:
+    """
+    Create a tar.gz file for the specified RPM/YUM package(s).
+
+    Args:
+    ----
+    pkg_name (Union[str, List[str]]): The name of the package to download.
+
+    Returns:
+    -------
+    FileResponse: A response with the tar.gz file for download.
+
+    """
+    if isinstance(pkg_name, str):
+        pkg_name = [
             pkg_name,
-        ],
-        check=True,
-    )
-    # Create tar.gz file
-    tar_file = os.path.join(RPM_DIR, f"{pkg_name}.tar.gz")
-    subprocess.run(
-        [
-            "tar",
-            "-czvf",
-            tar_file,
-            "-C",
-            RPM_DIR,
+        ]  # Convert single package name to a list for uniform handling
+
+    package_dirs = []
+    try:
+        for pkg in pkg_name:
+            package_dir = RPM_DIR / pkg
+            package_dir.mkdir(parents=True, exist_ok=True)
+            package_dirs.append(package_dir)
+
+            # Download the package using yumdownloader
+            subprocess.run(
+                [
+                    "yumdownloader",
+                    "--assumeyes",
+                    f"--destdir={package_dir}",
+                    "--resolve",
+                    pkg,
+                ],
+                check=True,
+            )
+
+        # Create a tar.gz file with all downloaded packages
+        tar_file = RPM_DIR / "packages.tar.gz"
+        subprocess.run(
+            ["tar", "-czvf", str(tar_file), "-C", str(RPM_DIR)]
+            + [str(d.name) for d in package_dirs],
+            check=True,
+        )
+
+        # Check if the tar file was created successfully
+        if not tar_file.exists():
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to create tar file",
+            )
+
+        # Return the tar.gz file as a response
+        return FileResponse(
+            path=str(tar_file),
+            media_type="application/gzip",
+            filename=tar_file.name,
+        )
+    except subprocess.CalledProcessError as err:
+        raise HTTPException(
+            status_code=500,
+            detail="Error occurred while creating the package tar file.",
+        ) from err
+
             pkg_name,
         ],
         check=True,
