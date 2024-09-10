@@ -65,7 +65,7 @@ include = 'src|tests'
 [tool.ruff]
 show-fixes = true
 extend-select = ["ALL"]
-ignore = ["D100", "D104", "D401", "D211", "D212", "RET505"]
+ignore = ["D100", "D104", "D401", "D211", "D212", "RET505", "I001"]
 line-length = 80
 
 exclude = [
